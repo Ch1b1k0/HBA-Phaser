@@ -19,9 +19,14 @@ function create(){
   loadLevel(this.game.cache.getJSON('level:1'));
   leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
   rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+  upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
+  upKey.onDown.add(function(){
+      jump();
+  })
 };
 
 function update(){
+  handleCollisions();
   handleInput();
 };
 
@@ -29,11 +34,15 @@ function loadLevel(data){
     platforms = game.add.group();
     data.platforms.forEach(spawnPlatform, this);
     spawnCharacters({hero: data.hero});
-    game.physics.arcade.gravity.y = -10;
-};
+    game.physics.arcade.gravity.y = 1200;
+}; 
 
 function spawnPlatform(platform) {
     game.add.sprite(platform.x, platform.y, platform.image);
+    var sprite = platforms.create(platform.x, platform.y, platform.image);
+    game.physics.enable(sprite);
+    sprite.body.allowGravity = false;
+    sprite.body.immovable = true;
 };
 
 function spawnCharacters (data) {
@@ -63,7 +72,21 @@ function handleInput(){
     else {
         move(0);
     }
-}
+};
 
-//Create a game state
+function handleCollisions(){
+   game.physics.arcade.collide(hero, platforms);
+};
+
+function jump(){
+    var canJump = hero.body.touching.down;
+    if (canJump) {
+        hero.body.velocity.y = -600;
+    }
+    else {
+      return canJump;
+    }
+};
+
+    //Create a game state
 var game = new Phaser.Game(960, 600, Phaser.AUTO, 'game', {init: init, preload: preload, create: create, update: update});
