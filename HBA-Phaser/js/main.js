@@ -1,3 +1,4 @@
+var coinPickupCount = 0;
 function init(){
     
 }
@@ -6,7 +7,7 @@ function preload(){
     game.load.image('background', 'images/byr.gif');
     game.load.json('level:1', 'data/level01.json');
     //spawn platform sprites
-    game.load.image('ground', 'images/ground.png');
+    game.load.image('ground', 'images/bella.gif');
     game.load.image('grass:8x1', 'images/grass_8x1.png');
     game.load.image('grass:6x1', 'images/grass_6x1.png');
     game.load.image('grass:4x1', 'images/asd.gif');
@@ -21,7 +22,10 @@ function preload(){
     game.load.spritesheet('coin', 'images/coin_animated.png', 22, 22);
     game.load.spritesheet('spider', 'images/spider.png', 42, 32);
     game.load.image('invisible-wall', 'images/invisible_wall.png');
-
+    game.load.image('icon:coin', 'images/coin_icon.png');
+    game.load.image('font:numbers', 'images/numbers.png');
+    game.load.spritesheet('door', 'images/door.png', 42, 66);
+    game.load.image('key', 'images/key.png');
 };
 
 function create(){
@@ -29,6 +33,8 @@ function create(){
     sfxJump = game.add.audio('sfx:jump');
     sfxCoin = game.add.audio('sfx:coin');
     sfxStomp = game.add.audio('sfx:stomp');
+    coinIcon = game.make.image(40, 0, 'icon:coin');
+
     loadLevel(this.game.cache.getJSON('level:1'));
     leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
@@ -36,6 +42,17 @@ function create(){
     upKey.onDown.add(function(){
         jump();
     });
+
+    //Adding coin icon
+    hud = game.add.group();
+    hud.add(coinIcon);
+    hud.position.set(10, 10);
+
+    var NUMBERS_STR = '0123456789X ';
+    coinFont = game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
+    var coinScoreImg = game.make.image(100 + coinIcon.width, coinIcon.height / 2, coinFont);
+    coinScoreImg.anchor.set(1, 0.5);
+    hud.add(coinScoreImg);
 }
 
 function update(){
@@ -50,13 +67,17 @@ function loadLevel(data) {
     coins = game.add.group();
     spiders = game.add.group();
     enemyWalls = game.add.group();
+    bgDecoration = game.add.group();
     enemyWalls.visible = false;
     data.platforms.forEach(spawnPlatform, this);
     // spawn hero and enemies
+    
     spawnCharacters({hero: data.hero, spiders: data.spiders});  
+    spawnDoor(data.door.x, data.door.y);
+    spawnKey(data.key.x, data.key.y);
     // spawn important objects
     data.coins.forEach(spawnCoin, this);
-    game.physics.arcade.gravity.y = 2;
+    game.physics.arcade.gravity.y = 1200;
 };
 
 function spawnPlatform(platform) {
@@ -195,6 +216,26 @@ function spawnSpider(){
     game.physics.enable(spider);
     spider.body.collideWorldBounds = true;
     spider.body.velocity.x = Spider.speed;
+}
+
+function onHeroVsCoin(hero, coin){
+    coinPickupCount++;
+    coin.kill();
+    coinFont.text = `x${coinPickupCount}`;
+}
+
+function spawnDoor(x, y){
+    door = bgDecoration.create(x, y, 'door');
+    door.anchor.setTo(0.5, 1);
+    game.physics.enable(door);
+    door.body.allowGravity = false;
+}
+
+function spawnKey(x, y){
+    key = bgDecoration.create(x, y, 'key');
+    key.anchor.set(0.5, 0.5);
+    game.physics.enable(key);
+    key.body.allowGravity = false;
 }
 
 //Create a game state
