@@ -1,20 +1,25 @@
 var coinPickupCount = 0;
+var hasKey = false;
+var level = 0;
+
 function init(){
     
-}
+};
 
 function preload(){
     game.load.image('background', 'images/byr.gif');
+    game.load.json('level:2', 'data/level02.json');
     game.load.json('level:1', 'data/level01.json');
+    game.load.json('level:0', 'data/level00.json');
     //spawn platform sprites
     game.load.image('ground', 'images/bella.gif');
-    game.load.image('grass:8x1', 'images/grass_8x1.png');
+    game.load.image('grass:8x1', 'image/grass_8x1.png');
     game.load.image('grass:6x1', 'images/grass_6x1.png');
     game.load.image('grass:4x1', 'images/asd.gif');
     game.load.image('grass:2x1', 'images/hihi.gif');
     game.load.image('grass:1x1', 'images/heart.gif');
 
-    // load the hero image
+    // load the hero image=
     game.load.image('hero', 'images/tree.gif');
     game.load.audio('sfx:jump', 'audio/jump.wav');
     game.load.audio('sfx:coin', 'audio/coin.wav');
@@ -26,6 +31,10 @@ function preload(){
     game.load.image('font:numbers', 'images/numbers.png');
     game.load.spritesheet('door', 'images/door.png', 42, 66);
     game.load.image('key', 'images/key.png');
+    game.load.audio('sfx:key', 'audio/key.wav');
+    game.load.audio('sfx:door', 'audio/door.wav');
+    game.load.spritesheet('icon:key', 'images/key_icon.png', 34, 30);
+
 };
 
 function create(){
@@ -33,9 +42,12 @@ function create(){
     sfxJump = game.add.audio('sfx:jump');
     sfxCoin = game.add.audio('sfx:coin');
     sfxStomp = game.add.audio('sfx:stomp');
+    sfxKey = game.add.audio('sfx:key');
+    sfxDoor = game.add.audio('sfx:door');
+    keyIcon = game.make.image(0, 19, 'icon:key');
+    keyIcon.anchor.set(0, 0.5);
     coinIcon = game.make.image(40, 0, 'icon:coin');
-
-    loadLevel(this.game.cache.getJSON('level:1'));
+    loadLevel(this.game.cache.getJSON('level:' + level));
     leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -43,22 +55,26 @@ function create(){
         jump();
     });
 
-    //Adding coin icon
     hud = game.add.group();
     hud.add(coinIcon);
     hud.position.set(10, 10);
 
+    // ? - Declare a variable 'NUMBERS_STR' and set its value as string '0123456789X '
     var NUMBERS_STR = '0123456789X ';
     coinFont = game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
+
     var coinScoreImg = game.make.image(100 + coinIcon.width, coinIcon.height / 2, coinFont);
     coinScoreImg.anchor.set(1, 0.5);
+
     hud.add(coinScoreImg);
+    hud.add(keyIcon);
 }
 
 function update(){
     handleInput();
     handleCollisions();
     moveSpider();
+    keyIcon.frame = hasKey ? 1 : 0;
 }
 
 function loadLevel(data) {
@@ -71,7 +87,6 @@ function loadLevel(data) {
     enemyWalls.visible = false;
     data.platforms.forEach(spawnPlatform, this);
     // spawn hero and enemies
-    
     spawnCharacters({hero: data.hero, spiders: data.spiders});  
     spawnDoor(data.door.x, data.door.y);
     spawnKey(data.key.x, data.key.y);
@@ -139,6 +154,12 @@ function handleCollisions(){
    game.physics.arcade.collide(spiders, enemyWalls);
    game.physics.arcade.overlap(hero, coins, onHeroVsCoin, null);
    game.physics.arcade.overlap(hero, spiders, onHeroVsEnemy, null);
+   game.physics.arcade.overlap(hero, key, onHeroVsKey, null);
+   game.physics.arcade.overlap(hero, door, onHeroVsDoor,
+        // ignore if there is no key or the player is on air
+        function (hero, door) {
+            return hasKey && hero.body.touching.down;
+        });
 };
 
 function jump(){
@@ -236,6 +257,27 @@ function spawnKey(x, y){
     key.anchor.set(0.5, 0.5);
     game.physics.enable(key);
     key.body.allowGravity = false;
+}
+
+function onHeroVsKey(hero, key){
+    sfxKey.play();
+    key.kill();
+    hasKey = true;
+}
+
+function onHeroVsDoor(hero, door){
+    sfxDoor.play();
+    if (level === 0){
+        level = level + 1;
+    }
+    else if (level === 1){
+        level = level + 1;
+    }
+    else {
+        level = 0;
+    }
+    hasKey = false;
+    game.state.restart();
 }
 
 //Create a game state
